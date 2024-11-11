@@ -1,22 +1,27 @@
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
+from datetime import datetime
 
 app = FastAPI()
 
-# Membuat model untuk data yang akan dikirim oleh Saweria (contoh data donasi)
-class DonationData(BaseModel):
-    amount: int
-    username: str
+# Model untuk data yang akan dikirim oleh Saweria (contoh data donasi)
+class DonationNotification(BaseModel):
+    version: str
+    created_at: datetime
+    id: str
+    type: str
+    amount_raw: int
+    cut: int
+    donator_name: str
+    donator_email: str
+    donator_is_user: bool
     message: str
-    transaction_id: str
 
 # Endpoint untuk menerima webhook dari Saweria
 @app.post("/webhook")
-async def receive_donation(data: DonationData):
-    # Proses data donasi yang diterima
-    print(f"Donasi diterima: {data.amount} dari {data.username}")
-    print(f"Pesan: {data.message}")
-    print(f"Transaction ID: {data.transaction_id}")
-
-    # Anda bisa menambahkan logika lain di sini, seperti menambahkan notifikasi, memperbarui UI, dll.
-    return {"status": "success"}
+async def receive_donation(data: DonationNotification) -> dict:
+    # Menampilkan data yang diterima di console
+    return {
+        "notification_body": data.dict(),
+        "esp32_status": "Success"
+    }
