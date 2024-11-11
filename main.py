@@ -1,17 +1,22 @@
-from typing import Union
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from pydantic import BaseModel
 
 app = FastAPI()
 
+# Membuat model untuk data yang akan dikirim oleh Saweria (contoh data donasi)
+class DonationData(BaseModel):
+    amount: int
+    username: str
+    message: str
+    transaction_id: str
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+# Endpoint untuk menerima webhook dari Saweria
+@app.post("/webhook")
+async def receive_donation(data: DonationData):
+    # Proses data donasi yang diterima
+    print(f"Donasi diterima: {data.amount} dari {data.username}")
+    print(f"Pesan: {data.message}")
+    print(f"Transaction ID: {data.transaction_id}")
 
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
-
-    
+    # Anda bisa menambahkan logika lain di sini, seperti menambahkan notifikasi, memperbarui UI, dll.
+    return {"status": "success"}
