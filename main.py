@@ -15,10 +15,14 @@ received_data = []
 # Get the stream key from environment variable (ensure you set it in Koyeb)
 stream_key = os.getenv("STREAM_KEY")
 
-# Function to verify the webhook signature
-def verify_signature(data: dict, signature: str) -> bool:
+# Function to verify the webhook signature using the stream key
+def verify_signature(signature: str) -> bool:
     # Create the HMAC-SHA256 signature using the stream key
-    expected_signature = hmac.new(stream_key.encode(), message.encode(), hashlib.sha256).hexdigest()
+    expected_signature = hmac.new(stream_key.encode(), b'', hashlib.sha256).hexdigest()
+    
+    # Log the expected and actual signature for debugging
+    logging.info(f"Expected Signature: {expected_signature}")
+    logging.info(f"Received Signature: {signature}")
 
     # Compare the expected signature with the provided signature
     return hmac.compare_digest(expected_signature, signature)
@@ -37,7 +41,7 @@ async def receive_donation(request: Request) -> dict:
         signature = request.headers.get("X-Saweria-Signature")
 
         # Verify the signature
-        if signature is None or not verify_signature(data, signature):
+        if signature is None or not verify_signature(signature):
             logging.error("Invalid signature")
             raise HTTPException(status_code=400, detail="Invalid signature")
 
