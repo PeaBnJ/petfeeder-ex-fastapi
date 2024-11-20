@@ -36,6 +36,8 @@ async def verify_saweria_signature(request: Request):
 
     # Read raw request body
     raw_body = await request.body()
+    logging.info(f"Raw body: {raw_body}")
+    logging.info(f"Received signature: {signature}")
 
     # Prepare the data string (concatenate required fields)
     try:
@@ -50,6 +52,7 @@ async def verify_saweria_signature(request: Request):
         print(signature)
         print(data_string)
         print(stream_key)
+        logging.info(f"Generated HMAC: {generated_hmac}")
         logging.error("Invalid signature.")
         raise HTTPException(status_code=401, detail="Invalid signature.")
 
