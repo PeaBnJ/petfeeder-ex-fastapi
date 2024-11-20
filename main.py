@@ -47,6 +47,9 @@ async def verify_saweria_signature(request: Request):
 
     # Verify the signature
     if not verify_signature(signature, data_string, stream_key):
+        print(signature)
+        print(data_string)
+        print(stream_key)
         logging.error("Invalid signature.")
         raise HTTPException(status_code=401, detail="Invalid signature.")
 
