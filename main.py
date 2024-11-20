@@ -42,6 +42,9 @@ def verify_saweria_signature(stream_key: str):
 # Add the signature verification as a dependency
 verify_signature = verify_saweria_signature(stream_key)
 
+# Global variable to store received data
+received_data = []
+
 # Endpoint to handle Saweria webhook
 @app.post("/webhook")
 async def receive_donation(
@@ -53,11 +56,15 @@ async def receive_donation(
         data = await request.json()
         logging.info("Verified donation data: %s", data)
 
+        # Store the data in the global list
+        received_data.append(data)
+
         return {"status": "success", "data": data}
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+# Endpoint to display received data
 @app.get("/show-data")
 async def show_data():
     return {"received_data": received_data}
