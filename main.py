@@ -20,6 +20,7 @@ def verify_signature(received_signature: str, data_string: str, key: str) -> boo
     Verifies the HMAC-SHA256 signature.
     """
     generated_hmac = hmac.new(key.encode(), data_string.encode(), hashlib.sha256).hexdigest()
+    logging.info(f"Generated HMAC: {generated_hmac}")
     try:
         return hmac.compare_digest(generated_hmac, received_signature)
     except Exception as e:
@@ -52,7 +53,6 @@ async def verify_saweria_signature(request: Request):
         print(signature)
         print(data_string)
         print(stream_key)
-        logging.info(f"Generated HMAC: {generated_hmac}")
         logging.error("Invalid signature.")
         raise HTTPException(status_code=401, detail="Invalid signature.")
 
