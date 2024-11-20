@@ -10,7 +10,7 @@ app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 
 # Stream key from environment variable
-stream_key = {{ STREAM_KEY }}
+stream_key = os.environ.get("STREAM_KEY")
 if not stream_key:
     raise ValueError("STREAM_KEY environment variable is not set.")
 
