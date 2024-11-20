@@ -1,7 +1,7 @@
 import os
 import hmac
 import hashlib
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 import logging
 
 app = FastAPI()
@@ -9,54 +9,55 @@ app = FastAPI()
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 
-# Variabel global untuk menyimpan data
-received_data = []
-
-# Get the stream key from environment variable (ensure you set it in Koyeb)
+# Stream key from environment variable
 stream_key = os.getenv("STREAM_KEY")
+if not stream_key:
+    raise ValueError("STREAM_KEY environment variable is not set.")
 
-# Function to verify the webhook signature using the stream key
-def verify_signature(signature: str) -> bool:
-    # Create the HMAC-SHA256 signature using the stream key
-    expected_signature = hmac.new(stream_key.encode(), b'', hashlib.sha256).hexdigest()
-    
-    # Log the expected and actual signature for debugging
-    logging.info(f"Expected Signature: {expected_signature}")
-    logging.info(f"Received Signature: {signature}")
+# Middleware-like dependency for signature verification
+def verify_saweria_signature(stream_key: str):
+    async def dependency(request: Request):
+        # Get signature from headers
+        signature = request.headers.get("Saweria-Callback-Signature")
+        if not signature:
+            logging.error("Missing Saweria-Callback-Signature header.")
+            raise HTTPException(status_code=403, detail="Missing signature header.")
 
-    # Compare the expected signature with the provided signature
-    return hmac.compare_digest(expected_signature, signature)
+        # Read raw request body
+        raw_body = await request.body()
 
-# Endpoint untuk menerima webhook dari Saweria
+        # Generate HMAC-SHA256 signature using stream key
+        expected_signature = hmac.new(
+            stream_key.encode(),
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
+
+        # Compare signatures
+        if not hmac.compare_digest(expected_signature, signature):
+            logging.error("Invalid signature.")
+            raise HTTPException(status_code=401, detail="Invalid signature.")
+    return dependency
+
+# Add the signature verification as a dependency
+verify_signature = verify_saweria_signature(stream_key)
+
+# Endpoint to handle Saweria webhook
 @app.post("/webhook")
-async def receive_donation(request: Request) -> dict:
+async def receive_donation(
+    request: Request,
+    _: None = Depends(verify_signature)
+) -> dict:
     try:
-        # Menerima data sebagai dictionary
+        # Parse JSON body after verification
         data = await request.json()
-        
-        # Logging data untuk inspeksi
-        logging.info(f"Received data: {data}")
-        
-        # Get the signature from the request headers (assuming it's passed)
-        signature = request.headers.get("X-Saweria-Signature")
+        logging.info("Verified donation data: %s", data)
 
-        # Verify the signature
-        if signature is None or not verify_signature(signature):
-            logging.error("Invalid signature")
-            raise HTTPException(status_code=400, detail="Invalid signature")
-
-        # Simpan data yang diterima
-        received_data.append(data)
-        
-        return {
-            "status": "success",
-            "received_data": data
-        }
+        return {"status": "success", "data": data}
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-# Endpoint untuk menampilkan data dalam JSON
 @app.get("/show-data")
-async def show_data() -> dict:
+async def show_data():
     return {"received_data": received_data}
