@@ -43,6 +43,7 @@ async def verify_saweria_signature(request: Request):
     # Prepare the data string (concatenate required fields)
     try:
         payload = await request.json()  # Parse JSON to get payload fields
+        # Create the data string based on Saweria's expected format
         data_string = f"{payload['version']}{payload['id']}{payload['amount_raw']}{payload['donator_name']}{payload['donator_email']}"
     except Exception as e:
         logging.error(f"Failed to parse payload: {e}")
